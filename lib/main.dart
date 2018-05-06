@@ -1,4 +1,8 @@
+import 'dart:async';
+
+import 'package:b4/home.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 void main() => runApp(new MyApp());
 
@@ -19,9 +23,10 @@ class MyApp extends StatelessWidget {
         // counter didn't reset back to zero; the application is not restarted.
         primarySwatch: Colors.blue,
       ),
-      home: new MyHomePage(title: 'Flutter Demo Home Page'),
+      home: new AnimationDemoHome()
     );
   }
+
 }
 
 class MyHomePage extends StatefulWidget {
@@ -43,6 +48,36 @@ class MyHomePage extends StatefulWidget {
 }
 
 class _MyHomePageState extends State<MyHomePage> {
+  static const platform = const MethodChannel('samples.flutter.io/battery');
+
+  _MyHomePageState() {
+    platform.setMethodCallHandler((MethodCall call) {
+      assert(call.method == 'active');
+      setState(() {
+        count = call.arguments;
+      });
+    });
+  }
+
+  String count = "unknown";
+  // Get battery level.
+  String _batteryLevel = 'Unknown battery level.';
+
+  Future<Null> _getBatteryLevel() async {
+    String batteryLevel;
+    try {
+      final int result = await platform.invokeMethod('getBatteryLevel');
+      batteryLevel = 'Battery level at $result % .';
+    } on PlatformException catch (e) {
+      batteryLevel = "Failed to get battery level: '${e.message}'.";
+    }
+
+    setState(() {
+      _batteryLevel = batteryLevel;
+    });
+  }
+
+
   int _counter = 0;
 
   void _incrementCounter() {
@@ -93,14 +128,14 @@ class _MyHomePageState extends State<MyHomePage> {
               'You have pushed the button this many times:',
             ),
             new Text(
-              '$_counter',
+              '$count',
               style: Theme.of(context).textTheme.display1,
             ),
           ],
         ),
       ),
       floatingActionButton: new FloatingActionButton(
-        onPressed: _incrementCounter,
+        onPressed: _getBatteryLevel,
         tooltip: 'Increment',
         child: new Icon(Icons.add),
       ), // This trailing comma makes auto-formatting nicer for build methods.
